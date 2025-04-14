@@ -1,0 +1,5 @@
+home_page_header = "//div[@class='Home_Header__iJKdX'"
+home_page_order_button = "//div[@class='Home_RoadMap__2tal_']//button[contains(text(),'Заказать')]"
+home_page_accordion_questions = "(//div[@class='accordion__button'])"
+home_page_accordion_answers = "(//div[@class='accordion__panel'])"
+home_page_faq_section = "//div[@class='Home_FourPart__1uthg']"

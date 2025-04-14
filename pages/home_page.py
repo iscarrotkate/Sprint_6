@@ -1,46 +1,65 @@
-from selenium.webdriver.common.by import By
 import allure
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
 
-from helpers.urls import home_page_url
+from helpers.data import questions_and_aswers
+from locators.base_page_locators import base_page_order_button
+from pages.base_page import BasePageScooter
+from helpers.urls import place_order_page_url, base_url
+from locators.home_page_locators import *
 
-class HomePageScooter:
 
-    page_url = home_page_url
-    header = [By.XPATH, "//div[@class='Home_Header__iJKdX']"]
-    order_button = [By.XPATH, "//div[@class='Home_RoadMap__2tal_']//button[contains(text(),'Заказать')]"]
-    accordion_questions = [By.XPATH, "(//div[@class='accordion__item'])"]
-    accordion_answers = [By.XPATH, "(//div[@class='accordion__panel'])"]
-    faq_section = [By.XPATH, "//div[@class='Home_FourPart__1uthg']"]
-
-    def __init__(self, driver):
-        self.driver = driver
+class HomePageScooter(BasePageScooter):
+    page_url = f'{base_url}{place_order_page_url}'
 
     @allure.step('Открыть главную страницу')
     def open_home_page_by_direct_url(self):
-        self.driver.get(self.page_url)
+        self.open_page_by_direct_url(base_url)
 
-    @allure.step('Кликнуть по кнопке "Заказать" внизу страницы')
-    def click_place_order_button(self):
-        order_button = self.driver.find_element(*self.order_button)
-        self.driver.execute_script("arguments[0].scrollIntoView();", order_button)
-        WebDriverWait(self.driver, 3).until(expected_conditions.element_to_be_clickable((By.XPATH, "//div[@class='Home_RoadMap__2tal_']//button[contains(text(),'Заказать')]")))
+    @allure.step('Кликнуть по кнопке "Заказать" в конце страницы')
+    def click_place_order_button_bottom(self):
+        order_button = self.get_element_by_xpath(home_page_order_button)
+
+        self.scroll_to_element(order_button)
+        self.wait_for_element_to_be_clickable(order_button)
         order_button.click()
 
-    def get_question_and_answer_by_option_index(self, option_index):
-        self.driver.execute_script("arguments[0].scrollIntoView();", self.driver.find_element(*self.faq_section))
+    @allure.step('Кликнуть по кнопке "Заказать" в шапке страницы')
+    def click_place_order_button_top(self):
+        order_button = self.get_element_by_xpath(base_page_order_button)
 
-        question = self.driver.find_elements(*self.accordion_questions)[option_index].text
-        answer = self.driver.find_elements(*self.accordion_answers)[option_index].get_attribute("innerText")
+        self.scroll_to_element(order_button)
+        self.wait_for_element_to_be_clickable(order_button)
+        order_button.click()
+
+    @allure.step('Проверить, что открыта страница оформления заказа')
+    def verify_place_order_page_is_opened(self):
+        self.verify_current_url_is_expected(f'{base_url}{place_order_page_url}')
+
+    @allure.step('Получить фактический список пар "вопрос: ответ"')
+    def get_question_and_answer_by_option_index(self, option_index):
+        faq_section = self.get_element_by_xpath(home_page_faq_section)
+        self.scroll_to_element(faq_section)
+
+        question = self.get_list_of_elements_by_xpath(home_page_accordion_questions)[option_index].text
+        answer = self.get_list_of_elements_by_xpath(home_page_accordion_answers)[option_index].get_attribute(
+            "innerText")
         return {question: answer}
 
-    def section_is_collapsed(self, option_number):
-        self.driver.execute_script("arguments[0].scrollIntoView();", self.driver.find_element(*self.faq_section))
+    @allure.step('Кликнуть по секции с вопросом')
+    def click_on_question_by_index(self, index):
+        faq_section = self.get_element_by_xpath(home_page_faq_section)
+        self.scroll_to_element(faq_section)
 
-        return self.driver.find_elements(*self.accordion_answers)[option_number].get_attribute("hidden")
+        element = self.get_list_of_elements_by_xpath(home_page_accordion_questions)[index]
+        self.wait_for_element_to_be_clickable(element)
+        element.click()
 
-    def click_on_faq_option_by_index(self, option_index):
-        self.driver.execute_script("arguments[0].scrollIntoView();", self.driver.find_element(*self.faq_section))
+    @allure.step('Проверить, что секция с ответом развёрнута')
+    def verify_faq_answer_expanded(self, option_index):
+        faq_section = self.get_element_by_xpath(home_page_faq_section)
+        self.scroll_to_element(faq_section)
 
-        self.driver.find_elements(*self.accordion_questions)[option_index].click()
+        assert not self.get_list_of_elements_by_xpath(home_page_accordion_answers)[option_index].get_attribute("hidden")
+
+    @allure.step('Проверить, что ответ соответствует вопросу')
+    def verify_faq_answer_by_question_index(self, index):
+        assert self.get_question_and_answer_by_option_index(index) == questions_and_aswers.get(index)
